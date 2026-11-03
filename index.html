@@ -212,6 +212,7 @@ function apply(data, op, map) {
       if (patch.type && patch.type !== "epic" && t.type === "epic")
         data.tickets.forEach((k) => { if (k.epic === t.id) k.epic = null; });
       if (patch.type === "epic") patch.epic = null;
+      if (patch.status && patch.status !== t.status) patch.statusChanged = op.at;
       Object.assign(t, patch, { updated: op.at });
       break;
     }
@@ -318,7 +319,7 @@ const mark = (type) => `<span class="mark ${type}" title="${type}"></span>`;
 
 function createTicket(fields) {
   const t = { id: state.data.nextId, type: "task", title: "", status: "todo", epic: null,
-    description: "", created: now(), updated: now(), archived: false, ...fields };
+    description: "", created: now(), updated: now(), statusChanged: now(), archived: false, ...fields };
   op({ kind: "create", ticket: t }, `Add ${t.type}: ${t.title}`);
   return state.data.nextId - 1;
 }
