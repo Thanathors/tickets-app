@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111113">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tickets">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Tickets</title>
+<style>
+  :root {
+    --bg: #f7f7f8; --surface: #fff; --line: #e4e4e7; --text: #18181b; --muted: #71717a;
+    --hover: #f0f0f2; --accent: #18181b; --accent-ink: #fff;
+    --task: #3b82f6; --bug: #ef4444; --epic: #8b5cf6; --ok: #16a34a; --warn: #d97706;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111113; --surface: #1a1a1d; --line: #2a2a2e; --text: #ececee; --muted: #8b8b93;
+      --hover: #232327; --accent: #ececee; --accent-ink: #111113; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { padding: 0 16px calc(24px + env(safe-area-inset-bottom)); max-width: 1180px; margin: 0 auto; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { background: none; border: 0; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+  button:hover { background: var(--hover); }
+  select, input[type=text], input[type=password], textarea {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
+  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--muted); }
+  .muted { color: var(--muted); }
+  .hidden { display: none !important; }
+
+  /* header */
+  header { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; align-items: center;
+    gap: 8px; padding: calc(12px + env(safe-area-inset-top)) 0 10px; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 650; }
+  nav { display: flex; gap: 2px; }
+  nav button { color: var(--muted); }
+  nav button.on { color: var(--text); background: var(--hover); font-weight: 600; }
+  .spacer { flex: 1; }
+  .sync { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .sync i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  .sync.busy i { background: var(--warn); } .sync.error i { background: var(--bug); }
+
+  /* type marks */
+  .mark { display: inline-block; width: 9px; height: 9px; flex: none; }
+  .mark.task { background: var(--task); border-radius: 2px; }
+  .mark.bug { background: var(--bug); border-radius: 50%; }
+  .mark.epic { background: var(--epic); transform: rotate(45deg) scale(.85); border-radius: 1px; }
+
+  /* add bar */
+  .add { display: flex; gap: 6px; margin: 4px 0 14px; }
+  .add input { flex: 1; min-width: 0; }
+
+  /* board */
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
+  .col { min-height: 120px; border-radius: 8px; padding: 2px; }
+  .col.drop { background: var(--hover); }
+  .col h2 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px;
+    margin: 0 0 8px; padding: 0 4px; display: flex; align-items: center; gap: 6px; }
+  .col h2 .n { font-weight: 500; }
+  .col h2 button { margin-left: auto; font-size: 11px; text-transform: none; letter-spacing: 0; padding: 2px 6px; color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
+    margin-bottom: 6px; cursor: pointer; display: flex; gap: 9px; align-items: baseline; user-select: none; }
+  .card:hover { border-color: var(--muted); }
+  .card.dragging { opacity: .4; }
+  .card .t { flex: 1; min-width: 0; word-wrap: break-word; }
+  .card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .card.resolved .t > div:first-child { color: var(--muted); }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
+  .seg.tabs { display: none; }
+
+  /* epics + archive lists */
+  .list .row { display: flex; align-items: center; gap: 10px; padding: 11px 6px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .list .row:hover { background: var(--hover); }
+  .list .row .t { flex: 1; min-width: 0; }
+  .bar { width: 120px; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; flex: none; }
+  .bar > div { height: 100%; background: var(--ok); }
+  .pill { font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+
+  /* modal */
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 20; display: flex;
+    align-items: flex-start; justify-content: center; padding: 6vh 12px; overflow: auto; }
+  .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 620px;
+    padding: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  .modal .title { width: 100%; font-size: 18px; font-weight: 600; border-color: transparent; padding: 4px 6px; margin-left: -6px; }
+  .modal .title:hover { border-color: var(--line); }
+  .fields { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; padding: 2px; }
+  .seg button { padding: 4px 10px; font-size: 13px; color: var(--muted); }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); }
+  .modal textarea { width: 100%; min-height: 140px; resize: vertical; line-height: 1.5; }
+  .modal footer { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; }
+  .danger { color: var(--bug); }
+  .children { margin-top: 12px; }
+  .children .row { padding: 7px 4px; }
+  label.f { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .modal input.full { width: 100%; }
+  .primary { background: var(--accent); color: var(--accent-ink); padding: 7px 14px; font-weight: 600; }
+  .primary:hover { background: var(--accent); opacity: .9; }
+  .err { color: var(--bug); font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+  @media (max-width: 720px) {
+    header h1 { display: none; }
+    .board { grid-template-columns: 1fr; }
+    .seg.tabs { display: flex; margin-bottom: 10px; }
+    .tabs button { flex: 1; }
+    .board .col { display: none; } .board .col.show { display: block; }
+    .col h2 { display: none; }
+    .bar { width: 60px; }
+    .scrim { padding: 0; align-items: stretch; }
+    .modal { border-radius: 0; min-height: 100%; border: 0; padding-top: calc(18px + env(safe-area-inset-top)); }
+    .card { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tickets</h1>
+  <nav id="nav">
+    <button data-view="board" class="on">Board</button>
+    <button data-view="epics">Epics</button>
+    <button data-view="archive">Archive</button>
+  </nav>
+  <select id="epicFilter" title="Show tickets from one epic"></select>
+  <div class="spacer"></div>
+  <div class="sync" id="sync" title="Sync status"><i></i><span>…</span></div>
+  <button id="settingsBtn" title="Settings">⚙</button>
+</header>
+
+<main id="main"></main>
+<div id="modalRoot"></div>
+
+<script>
+// ============ storage format (shared with tickets.py) ============
+// { version: 1, nextId, tickets: [{ id, type: epic|task|bug, title, status: todo|in-progress|resolved,
+//   epic: id|null, description, created, updated, archived }] }
+const STATUSES = [["todo", "To do"], ["in-progress", "In progress"], ["resolved", "Resolved"]];
+const STATUS_LABEL = Object.fromEntries(STATUSES);
+const TYPES = [["task", "Task"], ["bug", "Bug"], ["epic", "Epic"]];
+const POLL_MS = 30000;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const now = () => new Date().toISOString().replace(/\.\d+Z$/, "Z");
+
+// ============ settings (per device) ============
+const cfg = JSON.parse(localStorage.getItem("tickets.cfg") || "{}");
+cfg.branch ||= "main"; cfg.path ||= "tickets.json"; cfg.api ||= "https://api.github.com";
+const saveCfg = () => localStorage.setItem("tickets.cfg", JSON.stringify(cfg));
+const configured = () => cfg.owner && cfg.repo && cfg.token;
+
+// ============ GitHub contents API ============
+const fileUrl = () => `${cfg.api}/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${cfg.path}`;
+const headers = () => ({ Authorization: `Bearer ${cfg.token}`, Accept: "application/vnd.github+json" });
+
+function b64decode(b64) {
+  const bin = atob(b64.replace(/\s/g, ""));
+  return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+}
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+async function fetchRemote() {
+  const r = await fetch(`${fileUrl()}?ref=${encodeURIComponent(cfg.branch)}`, { headers: headers(), cache: "no-store" });
+  if (r.status === 404) return { data: { version: 1, nextId: 1, tickets: [] }, sha: null };
+  if (r.status === 401) throw new Error("GitHub rejected the token — check Settings");
+  if (!r.ok) throw new Error(`GitHub error ${r.status}`);
+  const j = await r.json();
+  return { data: JSON.parse(b64decode(j.content)), sha: j.sha };
+}
+
+async function pushRemote(text, sha, message) {
+  const body = { message, content: b64encode(text), branch: cfg.branch };
+  if (sha) body.sha = sha;
+  const r = await fetch(fileUrl(), { method: "PUT", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (r.status === 409 || r.status === 422) { const e = new Error("conflict"); e.conflict = true; throw e; }
+  if (r.status === 401 || r.status === 403) throw new Error("GitHub refused the write — the token needs Contents: read & write");
+  if (!r.ok) throw new Error(`GitHub error ${r.status}`);
+  return (await r.json()).content.sha;
+}
+
+const serialize = (data) => JSON.stringify(data, null, 2) + "\n";
+
+// ============ operations ============
+// Changes are recorded as replayable ops, so if another device saved first we
+// re-apply them on top of its version. `map` remaps ids of tickets created in this batch.
+function apply(data, op, map) {
+  const id = (x) => (x != null && map[x] != null ? map[x] : x);
+  const find = (x) => data.tickets.find((t) => t.id === id(x));
+  switch (op.kind) {
+    case "create": {
+      // already there? (a save went through but its reply was lost) - don't add it twice
+      const same = data.tickets.find((k) => k.created === op.ticket.created && k.title === op.ticket.title && k.type === op.ticket.type);
+      if (same) { map[op.ticket.id] = same.id; break; }
+      const t = { ...op.ticket, id: data.nextId++, epic: id(op.ticket.epic) ?? null };
+      map[op.ticket.id] = t.id;
+      data.tickets.push(t);
+      break;
+    }
+    case "update": {
+      const t = find(op.id); if (!t) break;
+      const patch = { ...op.patch };
+      if ("epic" in patch) patch.epic = id(patch.epic) ?? null;
+      if (patch.type && patch.type !== "epic" && t.type === "epic")
+        data.tickets.forEach((k) => { if (k.epic === t.id) k.epic = null; });
+      if (patch.type === "epic") patch.epic = null;
+      Object.assign(t, patch, { updated: op.at });
+      break;
+    }
+    case "archive": {
+      for (const x of op.ids) {
+        const t = find(x); if (!t) continue;
+        const group = [t, ...(t.type === "epic" ? data.tickets.filter((k) => k.epic === t.id) : [])];
+        group.forEach((k) => { if (!!k.archived !== op.value) { k.archived = op.value; k.updated = op.at; } });
+      }
+      break;
+    }
+    case "delete": {
+      const gone = new Set();
+      for (const x of op.ids) {
+        const t = find(x); if (!t) continue;
+        gone.add(t.id);
+        if (t.type === "epic") data.tickets.forEach((k) => {
+          if (k.epic === t.id) { if (k.archived) gone.add(k.id); else k.epic = null; }
+        });
+      }
+      data.tickets = data.tickets.filter((t) => !gone.has(t.id));
+      break;
+    }
+  }
+}
+
+// ============ sync engine ============
+const state = {
+  data: JSON.parse(localStorage.getItem("tickets.cache") || "null"),
+  sha: localStorage.getItem("tickets.sha"),
+  pending: [], flushing: false, error: null,
+  view: "board", epic: localStorage.getItem("tickets.epic") || "all", mobileCol: "todo",
+  openId: null,
+};
+
+function cache() {
+  localStorage.setItem("tickets.cache", JSON.stringify(state.data));
+  if (state.sha) localStorage.setItem("tickets.sha", state.sha);
+}
+
+function setSync() {
+  const el = $("#sync");
+  const busy = state.flushing || state.pending.length;
+  el.className = "sync" + (state.error ? " error" : busy ? " busy" : "");
+  $("span", el).textContent = state.error ? state.error : busy ? "Saving…" : "Synced";
+}
+
+function op(o, message) {
+  o.at = now();
+  apply(state.data, o, {});
+  state.pending.push({ op: o, message });
+  cache(); render(); flush();
+}
+
+async function flush() {
+  if (state.flushing || !state.pending.length) return;
+  state.flushing = true; setSync();
+  try {
+    while (state.pending.length) {
+      const batch = state.pending.length;
+      const message = state.pending.map((p) => p.message).join("; ");
+      try {
+        state.sha = await pushRemote(serialize(state.data), state.sha, message);
+        state.pending.splice(0, batch);
+        state.error = null;
+      } catch (e) {
+        if (!e.conflict) throw e;
+        // someone else saved first: take theirs and replay ours on top
+        const remote = await fetchRemote();
+        const map = {};
+        state.pending.forEach((p) => apply(remote.data, p.op, map));
+        if (state.openId != null && map[state.openId] != null) state.openId = map[state.openId];
+        state.data = remote.data; state.sha = remote.sha;
+        render();
+      }
+      cache();
+    }
+  } catch (e) {
+    state.error = navigator.onLine ? e.message : "Offline — will retry";
+    setTimeout(flush, 5000);
+  } finally {
+    state.flushing = false; setSync();
+  }
+}
+
+async function refresh() {
+  if (!configured() || state.flushing || state.pending.length) return;
+  try {
+    const remote = await fetchRemote();
+    state.error = null;
+    if (remote.sha !== state.sha || !state.data) {
+      state.data = remote.data; state.sha = remote.sha; cache(); render();
+    }
+  } catch (e) { state.error = navigator.onLine ? e.message : "Offline"; }
+  setSync();
+}
+
+// ============ helpers ============
+const tickets = () => state.data?.tickets ?? [];
+const byId = (id) => tickets().find((t) => t.id === id);
+const epics = (archived = false) => tickets().filter((t) => t.type === "epic" && !!t.archived === archived);
+const childrenOf = (eid) => tickets().filter((t) => t.epic === eid && !t.archived);
+const mark = (type) => `<span class="mark ${type}" title="${type}"></span>`;
+
+function createTicket(fields) {
+  const t = { id: state.data.nextId, type: "task", title: "", status: "todo", epic: null,
+    description: "", created: now(), updated: now(), archived: false, ...fields };
+  op({ kind: "create", ticket: t }, `Add ${t.type}: ${t.title}`);
+  return state.data.nextId - 1;
+}
+const update = (id, patch, what) => op({ kind: "update", id, patch }, `#${id} ${what}`);
+
+// ============ rendering ============
+function render() {
+  setSync();
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.view === state.view));
+  const main = $("#main");
+  if (!configured()) {
+    main.innerHTML = `<div class="empty" style="padding:40px 0">Connect your GitHub repo to get started.
+      <p><button class="primary" onclick="openSettings()">Open settings</button></p></div>`;
+    $("#epicFilter").classList.add("hidden");
+    return;
+  }
+  if (!state.data) { main.innerHTML = `<div class="empty">Loading…</div>`; return; }
+
+  // epic filter
+  const ef = $("#epicFilter");
+  ef.classList.toggle("hidden", state.view !== "board");
+  if (state.epic !== "all" && state.epic !== "none" && !epics().some((e) => String(e.id) === state.epic)) state.epic = "all";
+  ef.innerHTML = `<option value="all">All tickets</option><option value="none">No epic</option>` +
+    epics().map((e) => `<option value="${e.id}">${esc(e.title)}</option>`).join("");
+  ef.value = state.epic;
+
+  if (state.view === "board") renderBoard(main);
+  else if (state.view === "epics") renderEpics(main);
+  else renderArchive(main);
+  if (state.openId != null) renderModal();
+}
+
+function renderBoard(main) {
+  const visible = tickets().filter((t) => !t.archived && t.type !== "epic" &&
+    (state.epic === "all" || (state.epic === "none" ? t.epic == null : String(t.epic) === state.epic)));
+  const cols = STATUSES.map(([s, label]) => {
+    let items = visible.filter((t) => t.status === s);
+    items = s === "resolved" ? items.sort((a, b) => b.updated.localeCompare(a.updated)) : items.sort((a, b) => a.id - b.id);
+    return { s, label, items };
+  });
+  main.innerHTML = `
+    <form class="add" id="addForm">
+      <select id="addType"><option value="task">Task</option><option value="bug">Bug</option></select>
+      <input type="text" id="addTitle" placeholder="Add a ticket…" title="Shortcut: N" autocomplete="off" enterkeyhint="done">
+    </form>
+    <div class="tabs seg">${cols.map((c) => `<button data-col="${c.s}" class="${state.mobileCol === c.s ? "on" : ""}">${c.label} ${c.items.length}</button>`).join("")}</div>
+    <div class="board">${cols.map((c) => `
+      <section class="col ${state.mobileCol === c.s ? "show" : ""}" data-status="${c.s}">
+        <h2>${c.label} <span class="n">${c.items.length}</span>
+          ${c.s === "resolved" && c.items.length ? `<button data-archive-resolved title="Move all resolved tickets to the archive">Archive all</button>` : ""}</h2>
+        ${c.items.map(cardHtml).join("") || `<div class="empty">Nothing here</div>`}
+      </section>`).join("")}
+    </div>`;
+
+  $("#addType").value = localStorage.getItem("tickets.addType") || "task";
+  $("#addType").onchange = (e) => localStorage.setItem("tickets.addType", e.target.value);
+  $("#addForm").onsubmit = (e) => {
+    e.preventDefault();
+    const title = $("#addTitle").value.trim(); if (!title) return;
+    const epic = /^\d+$/.test(state.epic) ? +state.epic : null;
+    const status = innerWidth <= 720 ? state.mobileCol : "todo";
+    createTicket({ type: $("#addType").value, title, epic, status });
+    $("#addTitle").focus();
+  };
+  main.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => { state.mobileCol = b.dataset.col; render(); });
+  main.querySelector("[data-archive-resolved]")?.addEventListener("click", () => {
+    const ids = cols[2].items.map((t) => t.id);
+    op({ kind: "archive", ids, value: true }, `Archive ${ids.length} resolved`);
+  });
+
+  // drag & drop between columns (desktop)
+  main.querySelectorAll(".card").forEach((c) => {
+    c.ondragstart = (e) => { e.dataTransfer.setData("text/plain", c.dataset.id); c.classList.add("dragging"); };
+    c.ondragend = () => c.classList.remove("dragging");
+  });
+  main.querySelectorAll(".col").forEach((col) => {
+    col.ondragover = (e) => { e.preventDefault(); col.classList.add("drop"); };
+    col.ondragleave = () => col.classList.remove("drop");
+    col.ondrop = (e) => {
+      e.preventDefault(); col.classList.remove("drop");
+      const t = byId(+e.dataTransfer.getData("text/plain"));
+      if (t && t.status !== col.dataset.status) update(t.id, { status: col.dataset.status }, `→ ${STATUS_LABEL[col.dataset.status]}`);
+    };
+  });
+}
+
+function cardHtml(t) {
+  const e = t.epic != null ? byId(t.epic) : null;
+  const meta = [`#${t.id}`, e && state.epic === "all" ? esc(e.title) : ""].filter(Boolean).join(" · ");
+  return `<div class="card ${t.status}" draggable="true" data-id="${t.id}" data-open="${t.id}">
+    ${mark(t.type)}<div class="t"><div>${esc(t.title)}</div><div class="meta">${meta}</div></div></div>`;
+}
+
+function renderEpics(main) {
+  const list = epics();
+  main.innerHTML = `
+    <form class="add" id="addEpic"><input type="text" id="epicTitle" placeholder="New epic…" autocomplete="off" enterkeyhint="done"></form>
+    <div class="list">${list.map((e) => {
+      const kids = childrenOf(e.id), done = kids.filter((k) => k.status === "resolved").length;
+      return `<div class="row" data-goto="${e.id}">${mark("epic")}
+        <div class="t"><div>${esc(e.title)}</div><div class="muted" style="font-size:12px">#${e.id} · ${done}/${kids.length} resolved</div></div>
+        <span class="pill">${STATUS_LABEL[e.status]}</span>
+        <div class="bar"><div style="width:${kids.length ? (100 * done) / kids.length : 0}%"></div></div>
+        <button data-open="${e.id}" title="Edit epic">Edit</button></div>`;
+    }).join("") || `<div class="empty">No epics yet. Epics group tasks and bugs.</div>`}</div>`;
+  $("#addEpic").onsubmit = (ev) => {
+    ev.preventDefault();
+    const title = $("#epicTitle").value.trim(); if (!title) return;
+    createTicket({ type: "epic", title });
+  };
+  main.querySelectorAll("[data-goto]").forEach((r) => r.addEventListener("click", (ev) => {
+    if (ev.target.closest("[data-open]")) return;
+    state.epic = r.dataset.goto; localStorage.setItem("tickets.epic", state.epic);
+    state.view = "board"; render();
+  }));
+}
+
+function renderArchive(main) {
+  const list = tickets().filter((t) => t.archived).sort((a, b) => b.updated.localeCompare(a.updated));
+  main.innerHTML = `<div class="list">${list.map((t) => {
+    const e = t.epic != null ? byId(t.epic) : null;
+    return `<div class="row" data-open="${t.id}">${mark(t.type)}
+      <div class="t"><div>${esc(t.title)}</div><div class="muted" style="font-size:12px">#${t.id} · ${STATUS_LABEL[t.status]}${e ? " · " + esc(e.title) : ""}</div></div>
+      <button data-restore="${t.id}">Restore</button>
+      <button class="danger" data-delete="${t.id}">Delete</button></div>`;
+  }).join("") || `<div class="empty">The archive is empty. Archived tickets end up here, where you can restore or delete them.</div>`}</div>`;
+  main.querySelectorAll("[data-restore]").forEach((b) => b.onclick = (ev) => {
+    ev.stopPropagation(); const id = +b.dataset.restore;
+    op({ kind: "archive", ids: [id], value: false }, `Restore #${id}`);
+  });
+  main.querySelectorAll("[data-delete]").forEach((b) => b.onclick = (ev) => {
+    ev.stopPropagation(); const id = +b.dataset.delete;
+    if (confirm(`Delete #${id} "${byId(id)?.title}" for good?`)) op({ kind: "delete", ids: [id] }, `Delete #${id}`);
+  });
+}
+
+// ============ ticket modal ============
+function openTicket(id) { state.openId = id; renderModal(); }
+function closeModal() {
+  commitText();
+  state.openId = null; $("#modalRoot").innerHTML = ""; render();
+}
+function commitText() {
+  const t = byId(state.openId), m = $("#modalRoot .modal[data-id]");
+  if (!t || !m) return;
+  const title = $(".title", m).value.trim(), desc = $("textarea", m).value;
+  const patch = {};
+  if (title && title !== t.title) patch.title = title;
+  if (desc !== (t.description || "")) patch.description = desc;
+  if (Object.keys(patch).length) update(t.id, patch, "edited");
+}
+
+function renderModal() {
+  const t = byId(state.openId);
+  if (!t) { state.openId = null; $("#modalRoot").innerHTML = ""; return; }
+  const root = $("#modalRoot");
+  const existing = $(".modal", root);
+  // keep what the user is typing if a sync re-render happens
+  const keep = existing && +existing.dataset.id === t.id
+    ? { title: $(".title", existing).value, desc: $("textarea", existing).value, focus: document.activeElement?.className } : null;
+  const kids = t.type === "epic" ? childrenOf(t.id) : [];
+  root.innerHTML = `
+    <div class="scrim" id="scrim"><div class="modal" data-id="${t.id}">
+      <div style="display:flex;align-items:center;gap:8px">${mark(t.type)}<span class="muted">#${t.id}${t.archived ? " · archived" : ""}</span>
+        <div class="spacer"></div><button id="closeBtn" title="Close (Esc)">✕</button></div>
+      <input class="title" type="text" value="${esc(keep?.title ?? t.title)}" placeholder="Title">
+      <div class="fields">
+        <div class="seg" id="statusSeg">${STATUSES.map(([s, l]) => `<button data-s="${s}" class="${t.status === s ? "on" : ""}">${l}</button>`).join("")}</div>
+        <select id="typeSel">${TYPES.map(([v, l]) => `<option value="${v}" ${t.type === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+        ${t.type === "epic" ? "" : `<select id="epicSel"><option value="">No epic</option>${epics().map((e) =>
+          `<option value="${e.id}" ${t.epic === e.id ? "selected" : ""}>${esc(e.title)}</option>`).join("")}</select>`}
+      </div>
+      <textarea placeholder="Description, notes, links…">${esc(keep?.desc ?? t.description ?? "")}</textarea>
+      ${t.type === "epic" ? `<div class="children list"><label class="f">${kids.length} ticket${kids.length === 1 ? "" : "s"} in this epic</label>
+        ${kids.map((k) => `<div class="row" data-open="${k.id}">${mark(k.type)}<div class="t">${esc(k.title)}</div><span class="pill">${STATUS_LABEL[k.status]}</span></div>`).join("")}</div>` : ""}
+      <footer><span class="muted">Created ${t.created.slice(0, 10)} · Updated ${t.updated.slice(0, 10)}</span><div class="spacer"></div>
+        ${t.archived
+          ? `<button id="restoreBtn">Restore</button><button class="danger" id="deleteBtn">Delete</button>`
+          : `<button id="archiveBtn" title="${t.type === "epic" ? "Archives the epic and its tickets" : "Hide it in the archive"}">Archive</button>`}
+      </footer>
+    </div></div>`;
+  const m = $(".modal", root);
+  if (keep?.focus === "title") $(".title", m).focus();
+  $("#scrim").onclick = (e) => { if (e.target.id === "scrim") closeModal(); };
+  $("#closeBtn").onclick = closeModal;
+  $(".title", m).onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); commitText(); } };
+  $(".title", m).onblur = commitText;
+  $("textarea", m).onblur = commitText;
+  $("#statusSeg").onclick = (e) => {
+    const b = e.target.closest("[data-s]");
+    if (b && b.dataset.s !== t.status) { commitText(); update(t.id, { status: b.dataset.s }, `→ ${STATUS_LABEL[b.dataset.s]}`); }
+  };
+  $("#typeSel").onchange = (e) => {
+    if (t.type === "epic" && kids.length && !confirm("This epic's tickets will no longer belong to an epic. Continue?")) { e.target.value = "epic"; return; }
+    commitText(); update(t.id, { type: e.target.value }, `type → ${e.target.value}`);
+  };
+  $("#epicSel")?.addEventListener("change", (e) => { commitText(); update(t.id, { epic: e.target.value ? +e.target.value : null }, "epic changed"); });
+  $("#archiveBtn")?.addEventListener("click", () => { commitText(); op({ kind: "archive", ids: [t.id], value: true }, `Archive #${t.id}`); closeModal(); });
+  $("#restoreBtn")?.addEventListener("click", () => op({ kind: "archive", ids: [t.id], value: false }, `Restore #${t.id}`));
+  $("#deleteBtn")?.addEventListener("click", () => {
+    if (confirm(`Delete #${t.id} for good?`)) { op({ kind: "delete", ids: [t.id] }, `Delete #${t.id}`); closeModal(); }
+  });
+}
+
+// ============ settings ============
+function openSettings() {
+  $("#modalRoot").innerHTML = `
+    <div class="scrim" id="scrim"><div class="modal">
+      <div style="display:flex;align-items:center"><b>Settings</b><div class="spacer"></div><button id="closeBtn">✕</button></div>
+      <p class="muted">Saved on this device only. Tickets live in <code>${esc(cfg.path)}</code> in your private GitHub repo.</p>
+      <label class="f">GitHub username</label><input class="full" type="text" id="sOwner" value="${esc(cfg.owner || "")}" autocapitalize="off" autocorrect="off">
+      <label class="f">Data repository</label><input class="full" type="text" id="sRepo" value="${esc(cfg.repo || "tickets")}" autocapitalize="off" autocorrect="off">
+      <label class="f">Personal access token <span class="muted">(fine-grained, this repo only, Contents: read &amp; write)</span></label>
+      <input class="full" type="password" id="sToken" value="${esc(cfg.token || "")}" autocomplete="off">
+      <details style="margin-top:10px"><summary class="muted">Advanced</summary>
+        <label class="f">Branch</label><input class="full" type="text" id="sBranch" value="${esc(cfg.branch)}">
+        <label class="f">API URL</label><input class="full" type="text" id="sApi" value="${esc(cfg.api)}">
+      </details>
+      <div class="err" id="sErr"></div>
+      <footer><button class="danger" id="sForget" title="Remove the token and cached tickets from this device">Sign out</button>
+        <div class="spacer"></div><button class="primary" id="sSave">Save &amp; connect</button></footer>
+    </div></div>`;
+  const close = () => { $("#modalRoot").innerHTML = ""; };
+  $("#closeBtn").onclick = close;
+  $("#scrim").onclick = (e) => { if (e.target.id === "scrim") close(); };
+  $("#sForget").onclick = () => {
+    if (!confirm("Remove the token and cached tickets from this device?")) return;
+    ["tickets.cfg", "tickets.cache", "tickets.sha"].forEach((k) => localStorage.removeItem(k));
+    location.reload();
+  };
+  $("#sSave").onclick = async () => {
+    Object.assign(cfg, { owner: $("#sOwner").value.trim(), repo: $("#sRepo").value.trim(), token: $("#sToken").value.trim(),
+      branch: $("#sBranch").value.trim() || "main", api: $("#sApi").value.trim().replace(/\/$/, "") || "https://api.github.com" });
+    $("#sErr").textContent = "Connecting…";
+    try {
+      const remote = await fetchRemote();
+      saveCfg();
+      state.data = remote.data; state.sha = remote.sha; state.error = null; cache();
+      close(); render();
+    } catch (e) { $("#sErr").textContent = e.message; }
+  };
+}
+
+// ============ wiring ============
+$("#nav").onclick = (e) => {
+  const b = e.target.closest("[data-view]"); if (!b) return;
+  state.view = b.dataset.view; render();
+};
+$("#epicFilter").onchange = (e) => { state.epic = e.target.value; localStorage.setItem("tickets.epic", state.epic); render(); };
+$("#settingsBtn").onclick = openSettings;
+document.addEventListener("click", (e) => {
+  const o = e.target.closest("[data-open]");
+  if (o && !e.target.closest("[data-restore],[data-delete]")) { if (state.openId != null) commitText(); openTicket(+o.dataset.open); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $("#modalRoot").innerHTML) { state.openId != null ? closeModal() : ($("#modalRoot").innerHTML = ""); return; }
+  if (e.target.closest?.("input, textarea, select") || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === "n" && state.view === "board" && configured()) { e.preventDefault(); $("#addTitle")?.focus(); }
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+addEventListener("online", () => { flush(); refresh(); });
+addEventListener("beforeunload", (e) => { commitText(); if (state.pending.length) e.preventDefault(); });
+setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
+
+render();
+refresh();
+</script>
+</body>
+</html>
