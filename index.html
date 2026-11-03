@@ -55,6 +55,7 @@
   /* add bar */
   .add { display: flex; gap: 6px; margin: 4px 0 14px; }
   .add input { flex: 1; min-width: 0; }
+  .add #addEpic { max-width: 180px; }
 
   /* board */
   .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
@@ -108,6 +109,10 @@
     header h1 { display: none; }
     .board { grid-template-columns: 1fr; }
     .seg.tabs { display: flex; margin-bottom: 10px; }
+    .add { flex-wrap: wrap; }
+    .add input, .add #addBtn { order: -1; }
+    .add input { flex-basis: calc(100% - 70px); }
+    .add #addEpic { flex: 1; max-width: none; min-width: 0; }
     .tabs button { flex: 1; }
     .board .col { display: none; } .board .col.show { display: block; }
     .col h2 { display: none; }
@@ -363,7 +368,10 @@ function renderBoard(main) {
   main.innerHTML = `
     <form class="add" id="addForm">
       <select id="addType"><option value="task">Task</option><option value="bug">Bug</option></select>
+      <select id="addEpic" title="Epic for the new ticket"><option value="">No epic</option>${epics().map((e) =>
+        `<option value="${e.id}">${esc(e.title)}</option>`).join("")}</select>
       <input type="text" id="addTitle" placeholder="Add a ticket…" title="Shortcut: N" autocomplete="off" enterkeyhint="done">
+      <button class="primary" id="addBtn">Add</button>
     </form>
     <div class="tabs seg">${cols.map((c) => `<button data-col="${c.s}" class="${state.mobileCol === c.s ? "on" : ""}">${c.label} ${c.items.length}</button>`).join("")}</div>
     <div class="board">${cols.map((c) => `
@@ -376,10 +384,16 @@ function renderBoard(main) {
 
   $("#addType").value = localStorage.getItem("tickets.addType") || "task";
   $("#addType").onchange = (e) => localStorage.setItem("tickets.addType", e.target.value);
+  // the epic picker follows the board filter, and keeps a manual choice until the filter changes
+  const addEpic = $("#addEpic");
+  if (state.addEpicFilter !== state.epic) { state.addEpic = null; state.addEpicFilter = state.epic; }
+  addEpic.value = state.addEpic ?? (/^\d+$/.test(state.epic) ? state.epic : "");
+  if (addEpic.selectedIndex < 0) addEpic.value = "";
+  addEpic.onchange = () => { state.addEpic = addEpic.value; };
   $("#addForm").onsubmit = (e) => {
     e.preventDefault();
-    const title = $("#addTitle").value.trim(); if (!title) return;
-    const epic = /^\d+$/.test(state.epic) ? +state.epic : null;
+    const title = $("#addTitle").value.trim(); if (!title) { $("#addTitle").focus(); return; }
+    const epic = addEpic.value ? +addEpic.value : null;
     const status = innerWidth <= 720 ? state.mobileCol : "todo";
     createTicket({ type: $("#addType").value, title, epic, status });
     $("#addTitle").focus();
