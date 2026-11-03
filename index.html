@@ -59,12 +59,17 @@
 
   /* board */
   .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
-  .col { min-height: 120px; border-radius: 8px; padding: 2px; }
+  .board { row-gap: 0; }
+  .col { min-height: 44px; border-radius: 8px; padding: 2px; }
   .col.drop { background: var(--hover); }
-  .col h2 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px;
+  .colhead { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px;
     margin: 0 0 8px; padding: 0 4px; display: flex; align-items: center; gap: 6px; }
-  .col h2 .n { font-weight: 500; }
-  .col h2 button { margin-left: auto; font-size: 11px; text-transform: none; letter-spacing: 0; padding: 2px 6px; color: var(--muted); }
+  .colhead .n, .lane .n { font-weight: 500; color: var(--muted); }
+  .lane { grid-column: 1 / -1; font-size: 13px; font-weight: 600; padding: 10px 4px 6px; margin-top: 6px;
+    border-top: 1px solid var(--line); display: flex; gap: 6px; align-items: baseline; }
+  .lane[data-open] { cursor: pointer; } .lane[data-open]:hover { color: var(--accent); }
+  .lane-empty { grid-column: 1 / -1; }
+  .colhead button { margin-left: auto; font-size: 11px; text-transform: none; letter-spacing: 0; padding: 2px 6px; color: var(--muted); }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
     margin-bottom: 6px; cursor: pointer; display: flex; gap: 9px; align-items: baseline; user-select: none; }
   .card:hover { border-color: var(--muted); }
@@ -115,7 +120,7 @@
     .add #addEpic { flex: 1; max-width: none; min-width: 0; }
     .tabs button { flex: 1; }
     .board .col { display: none; } .board .col.show { display: block; }
-    .col h2 { display: none; }
+    .colhead, .lane.mhide { display: none; }
     .bar { width: 60px; }
     .scrim { padding: 0; align-items: stretch; }
     .modal { border-radius: 0; min-height: 100%; border: 0; padding-top: calc(18px + env(safe-area-inset-top)); }
@@ -365,6 +370,14 @@ function renderBoard(main) {
     items = s === "resolved" ? items.sort((a, b) => b.updated.localeCompare(a.updated)) : items.sort((a, b) => a.id - b.id);
     return { s, label, items };
   });
+  // one row (lane) per epic that has tickets on the board, then the tickets without an epic
+  const lanes = [...epics().map((e) => ({ epic: e.id, title: e.title })), { epic: null, title: "No epic" }]
+    .map((l) => ({ ...l, cols: cols.map((c) => c.items.filter((t) => (t.epic ?? null) === l.epic)) }))
+    .filter((l) => l.cols.some((items) => items.length));
+  const showLanes = state.epic === "all";
+  const cell = (c, items, epic) => `
+      <section class="col ${state.mobileCol === c.s ? "show" : ""}" data-status="${c.s}" data-epic="${epic ?? ""}">
+        ${items.map(cardHtml).join("")}</section>`;
   main.innerHTML = `
     <form class="add" id="addForm">
       <select id="addType"><option value="task">Task</option><option value="bug">Bug</option></select>
@@ -375,11 +388,14 @@ function renderBoard(main) {
     </form>
     <div class="tabs seg">${cols.map((c) => `<button data-col="${c.s}" class="${state.mobileCol === c.s ? "on" : ""}">${c.label} ${c.items.length}</button>`).join("")}</div>
     <div class="board">${cols.map((c) => `
-      <section class="col ${state.mobileCol === c.s ? "show" : ""}" data-status="${c.s}">
-        <h2>${c.label} <span class="n">${c.items.length}</span>
-          ${c.s === "resolved" && c.items.length ? `<button data-archive-resolved title="Move all resolved tickets to the archive">Archive all</button>` : ""}</h2>
-        ${c.items.map(cardHtml).join("") || `<div class="empty">Nothing here</div>`}
-      </section>`).join("")}
+      <h2 class="colhead">${c.label} <span class="n">${c.items.length}</span>
+        ${c.s === "resolved" && c.items.length ? `<button data-archive-resolved title="Move all resolved tickets to the archive">Archive all</button>` : ""}</h2>`).join("")}
+      ${!visible.length ? `<div class="empty lane-empty">Nothing here</div>` : showLanes ? lanes.map((l) => `
+      <div class="lane ${l.cols[STATUSES.findIndex(([s]) => s === state.mobileCol)].length ? "" : "mhide"}"
+        ${l.epic != null ? `data-open="${l.epic}" title="Open epic"` : ""}>${esc(l.title)}
+        <span class="n">${l.cols.reduce((n, items) => n + items.length, 0)}</span></div>
+      ${cols.map((c, i) => cell(c, l.cols[i], l.epic)).join("")}`).join("")
+      : cols.map((c) => cell(c, c.items, /^\d+$/.test(state.epic) ? +state.epic : null)).join("")}
     </div>`;
 
   $("#addType").value = localStorage.getItem("tickets.addType") || "task";
@@ -415,14 +431,18 @@ function renderBoard(main) {
     col.ondrop = (e) => {
       e.preventDefault(); col.classList.remove("drop");
       const t = byId(+e.dataTransfer.getData("text/plain"));
-      if (t && t.status !== col.dataset.status) update(t.id, { status: col.dataset.status }, `→ ${STATUS_LABEL[col.dataset.status]}`);
+      if (!t) return;
+      // dropping into another epic's lane also moves the ticket to that epic
+      const patch = {}, epic = col.dataset.epic ? +col.dataset.epic : null;
+      if (t.status !== col.dataset.status) patch.status = col.dataset.status;
+      if ((t.epic ?? null) !== epic) patch.epic = epic;
+      if (Object.keys(patch).length) update(t.id, patch, patch.status ? `→ ${STATUS_LABEL[patch.status]}` : `→ ${epic != null ? byId(epic).title : "no epic"}`);
     };
   });
 }
 
 function cardHtml(t) {
-  const e = t.epic != null ? byId(t.epic) : null;
-  const meta = [`#${t.id}`, e && state.epic === "all" ? esc(e.title) : ""].filter(Boolean).join(" · ");
+  const meta = `#${t.id}`; // the epic is shown by the lane (or the filter)
   return `<div class="card ${t.status}" draggable="true" data-id="${t.id}" data-open="${t.id}">
     ${mark(t.type)}<div class="t"><div>${esc(t.title)}</div><div class="meta">${meta}</div></div></div>`;
 }
