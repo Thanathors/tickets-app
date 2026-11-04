@@ -56,6 +56,9 @@
   .add { display: flex; gap: 6px; margin: 4px 0 14px; }
   .add input { flex: 1; min-width: 0; }
   .add #addEpic { max-width: 180px; }
+  .prio { font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
+  .prio.high { color: var(--bug); border-color: currentColor; }
+  .prio.mid { color: var(--warn); border-color: currentColor; }
 
   /* board */
   .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
@@ -117,7 +120,7 @@
     .add { flex-wrap: wrap; }
     .add input, .add #addBtn { order: -1; }
     .add input { flex-basis: calc(100% - 70px); }
-    .add #addEpic { flex: 1; max-width: none; min-width: 0; }
+    .add #addEpic, .add #addPrio { flex: 1; max-width: none; min-width: 0; }
     .tabs button { flex: 1; }
     .board .col { display: none; } .board .col.show { display: block; }
     .colhead, .lane.mhide { display: none; }
@@ -148,10 +151,15 @@
 <script>
 // ============ storage format (shared with tickets.py) ============
 // { version: 1, nextId, tickets: [{ id, type: epic|task|bug, title, status: todo|in-progress|resolved,
-//   epic: id|null, description, created, updated, archived }] }
+//   epic: id|null, priority: 1-10|null (1 = highest), description, created, updated, archived }] }
 const STATUSES = [["todo", "To do"], ["in-progress", "In progress"], ["resolved", "Resolved"]];
 const STATUS_LABEL = Object.fromEntries(STATUSES);
 const TYPES = [["task", "Task"], ["bug", "Bug"], ["epic", "Epic"]];
+const PRIORITIES = Array.from({ length: 10 }, (_, i) => i + 1); // 1 = highest
+const prioOptions = (sel, none = "No priority") => `<option value="">${none}</option>` +
+  PRIORITIES.map((p) => `<option value="${p}" ${sel === p ? "selected" : ""}>P${p}${p === 1 ? " (highest)" : ""}</option>`).join("");
+// higher priority first; tickets without one go last, then by id
+const byPriority = (a, b) => (a.priority ?? 99) - (b.priority ?? 99) || a.id - b.id;
 const POLL_MS = 30000;
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -328,7 +336,7 @@ const childrenOf = (eid) => tickets().filter((t) => t.epic === eid && !t.archive
 const mark = (type) => `<span class="mark ${type}" title="${type}"></span>`;
 
 function createTicket(fields) {
-  const t = { id: state.data.nextId, type: "task", title: "", status: "todo", epic: null,
+  const t = { id: state.data.nextId, type: "task", title: "", status: "todo", epic: null, priority: null,
     description: "", created: now(), updated: now(), statusChanged: now(), archived: false, ...fields };
   op({ kind: "create", ticket: t }, `Add ${t.type}: ${t.title}`);
   return state.data.nextId - 1;
@@ -367,7 +375,7 @@ function renderBoard(main) {
     (state.epic === "all" || (state.epic === "none" ? t.epic == null : String(t.epic) === state.epic)));
   const cols = STATUSES.map(([s, label]) => {
     let items = visible.filter((t) => t.status === s);
-    items = s === "resolved" ? items.sort((a, b) => b.updated.localeCompare(a.updated)) : items.sort((a, b) => a.id - b.id);
+    items = s === "resolved" ? items.sort((a, b) => b.updated.localeCompare(a.updated)) : items.sort(byPriority);
     return { s, label, items };
   });
   // one row (lane) per epic that has tickets on the board, then the tickets without an epic
@@ -383,6 +391,7 @@ function renderBoard(main) {
       <select id="addType"><option value="task">Task</option><option value="bug">Bug</option></select>
       <select id="addEpic" title="Epic for the new ticket"><option value="">No epic</option>${epics().map((e) =>
         `<option value="${e.id}">${esc(e.title)}</option>`).join("")}</select>
+      <select id="addPrio" title="Priority for the new ticket (1 = highest)">${prioOptions(null, "No prio")}</select>
       <input type="text" id="addTitle" placeholder="Add a ticket…" title="Shortcut: N" autocomplete="off" enterkeyhint="done">
       <button class="primary" id="addBtn">Add</button>
     </form>
@@ -411,7 +420,8 @@ function renderBoard(main) {
     const title = $("#addTitle").value.trim(); if (!title) { $("#addTitle").focus(); return; }
     const epic = addEpic.value ? +addEpic.value : null;
     const status = innerWidth <= 720 ? state.mobileCol : "todo";
-    createTicket({ type: $("#addType").value, title, epic, status });
+    const priority = $("#addPrio").value ? +$("#addPrio").value : null;
+    createTicket({ type: $("#addType").value, title, epic, status, priority });
     $("#addTitle").focus();
   };
   main.querySelectorAll(".tabs button").forEach((b) => b.onclick = () => { state.mobileCol = b.dataset.col; render(); });
@@ -442,7 +452,9 @@ function renderBoard(main) {
 }
 
 function cardHtml(t) {
-  const meta = `#${t.id}`; // the epic is shown by the lane (or the filter)
+  // the epic is shown by the lane (or the filter)
+  const p = t.priority;
+  const meta = `#${t.id}` + (p ? ` <span class="prio ${p <= 3 ? "high" : p <= 6 ? "mid" : ""}" title="Priority ${p} (1 = highest)">P${p}</span>` : "");
   return `<div class="card ${t.status}" draggable="true" data-id="${t.id}" data-open="${t.id}">
     ${mark(t.type)}<div class="t"><div>${esc(t.title)}</div><div class="meta">${meta}</div></div></div>`;
 }
@@ -525,6 +537,7 @@ function renderModal() {
         <select id="typeSel">${TYPES.map(([v, l]) => `<option value="${v}" ${t.type === v ? "selected" : ""}>${l}</option>`).join("")}</select>
         ${t.type === "epic" ? "" : `<select id="epicSel"><option value="">No epic</option>${epics().map((e) =>
           `<option value="${e.id}" ${t.epic === e.id ? "selected" : ""}>${esc(e.title)}</option>`).join("")}</select>`}
+        ${t.type === "epic" ? "" : `<select id="prioSel" title="Priority (1 = highest)">${prioOptions(t.priority ?? null)}</select>`}
       </div>
       <textarea placeholder="Description, notes, links…">${esc(keep?.desc ?? t.description ?? "")}</textarea>
       ${t.type === "epic" ? `<div class="children list"><label class="f">${kids.length} ticket${kids.length === 1 ? "" : "s"} in this epic</label>
@@ -551,6 +564,10 @@ function renderModal() {
     commitText(); update(t.id, { type: e.target.value }, `type → ${e.target.value}`);
   };
   $("#epicSel")?.addEventListener("change", (e) => { commitText(); update(t.id, { epic: e.target.value ? +e.target.value : null }, "epic changed"); });
+  $("#prioSel")?.addEventListener("change", (e) => {
+    const p = e.target.value ? +e.target.value : null;
+    commitText(); update(t.id, { priority: p }, p ? `priority → P${p}` : "priority cleared");
+  });
   $("#archiveBtn")?.addEventListener("click", () => { commitText(); op({ kind: "archive", ids: [t.id], value: true }, `Archive #${t.id}`); closeModal(); });
   $("#restoreBtn")?.addEventListener("click", () => op({ kind: "archive", ids: [t.id], value: false }, `Restore #${t.id}`));
   $("#deleteBtn")?.addEventListener("click", () => {
