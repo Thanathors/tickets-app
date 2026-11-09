@@ -175,7 +175,52 @@
   .primary:hover { background: var(--accent); filter: brightness(1.08); }
   .err { color: var(--red); font-size: 13px; margin-top: 8px; min-height: 18px; }
 
+  /* devlog (BestProjectEver) */
+  .dl-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .dl-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .dl-head h2 { font-family: var(--display); font-size: 26px; line-height: 1.1; margin: 2px 0 0; font-weight: 700; }
+  .dl-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dl-stats span { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; color: var(--muted); font-size: 12.5px; }
+  .dl-stats b { color: var(--text); font-size: 18px; margin-right: 4px; }
+  .dl-bars { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; max-width: 820px; }
+  .dl-barrow { display: grid; grid-template-columns: 56px minmax(0, 1fr) 24px; gap: 10px; align-items: center; font-family: var(--mono); font-size: 12px; }
+  .dl-cells { display: flex; flex-wrap: wrap; gap: 3px; }
+  .dl-cells i { width: 14px; height: 14px; border-radius: 2px; background: var(--accent); }
+  .dl-cells em { font-style: normal; color: var(--muted); }
+  .dl-list { display: flex; flex-direction: column; gap: 16px; max-width: 820px; }
+  .dl-day { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; }
+  .dl-tile { width: 56px; height: 56px; border-radius: 4px; background: var(--cell); border: 2px solid var(--accent); display: flex;
+    flex-direction: column; align-items: center; justify-content: center; gap: 3px; line-height: 1; }
+  .dl-tile small { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; color: var(--muted); }
+  .dl-tile b { font-size: 24px; font-weight: 700; }
+  .dl-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: flex;
+    flex-direction: column; gap: 10px; min-width: 0; }
+  .dl-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .dl-edit, .dl-actions button:not(.primary) { border-color: var(--line); background: var(--cell); }
+  .dl-card h3 { margin: 0; font-size: 16px; font-weight: 600; text-wrap: balance; }
+  .dl-sum { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+  .dl-video { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden;
+    background: var(--cell); border: 1px solid var(--line); padding: 0; }
+  .dl-video iframe, .dl-video img { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; object-fit: cover; }
+  .dl-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 68px; height: 48px; border-radius: 12px;
+    background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 18px rgba(0, 0, 0, .35); }
+  .dl-thumb:hover { background: var(--cell); } .dl-thumb:hover .dl-play, .dl-thumb:focus-visible .dl-play { filter: brightness(1.12); }
+  .dl-yt { text-decoration: none; align-self: flex-start; } .dl-yt:hover { color: var(--accent); }
+  .dl-novideo { border: 1px dashed var(--line); border-radius: 6px; padding: 10px 12px; }
+  .dl-tickets { border-top: 1px dashed var(--line); padding-top: 10px; }
+  .dl-label { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .dl-tickets ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+  .dl-tickets li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; font-size: 13.5px; }
+  .dl-tickets code { color: var(--muted); }
+  .dl-form { border-top: 1px dashed var(--line); display: flex; flex-direction: column; }
+  .dl-form input, .dl-form textarea { width: 100%; background: var(--bg); }
+  .dl-form textarea { min-height: 110px; resize: vertical; }
+  .dl-actions { display: flex; gap: 6px; }
+
   @media (max-width: 720px) {
+    .dl-day { grid-template-columns: 44px minmax(0, 1fr); gap: 10px; }
+    .dl-tile { width: 44px; height: 44px; } .dl-tile b { font-size: 19px; }
+    .dl-card { padding: 12px; }
     header h1 { display: none; }
     .board { grid-template-columns: minmax(0, 1fr); }
     .seg.tabs { display: flex; margin-bottom: 10px; }
@@ -202,6 +247,7 @@
     <button data-view="board" class="on">Board</button>
     <button data-view="epics">Epics</button>
     <button data-view="archive">Archive</button>
+    <button data-view="devlog">Devlog</button>
   </nav>
   <select id="epicFilter" title="Show tickets from one epic"></select>
   <div class="spacer"></div>
@@ -236,7 +282,7 @@ const saveCfg = () => localStorage.setItem("tickets.cfg", JSON.stringify(cfg));
 const configured = () => cfg.owner && cfg.repo && cfg.token;
 
 // ============ GitHub contents API ============
-const fileUrl = () => `${cfg.api}/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${cfg.path}`;
+const fileUrl = (path = cfg.path) => `${cfg.api}/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${path}`;
 const headers = () => ({ Authorization: `Bearer ${cfg.token}`, Accept: "application/vnd.github+json" });
 
 function b64decode(b64) {
@@ -250,8 +296,8 @@ function b64encode(str) {
   return btoa(bin);
 }
 
-async function fetchRemote() {
-  const r = await fetch(`${fileUrl()}?ref=${encodeURIComponent(cfg.branch)}`, { headers: headers(), cache: "no-store" });
+async function fetchRemote(path) {
+  const r = await fetch(`${fileUrl(path)}?ref=${encodeURIComponent(cfg.branch)}`, { headers: headers(), cache: "no-store" });
   if (r.status === 404) return { data: { version: 1, nextId: 1, tickets: [] }, sha: null };
   if (r.status === 401) throw new Error("GitHub rejected the token — check Settings");
   if (!r.ok) throw new Error(`GitHub error ${r.status}`);
@@ -259,10 +305,10 @@ async function fetchRemote() {
   return { data: JSON.parse(b64decode(j.content)), sha: j.sha };
 }
 
-async function pushRemote(text, sha, message) {
+async function pushRemote(text, sha, message, path) {
   const body = { message, content: b64encode(text), branch: cfg.branch };
   if (sha) body.sha = sha;
-  const r = await fetch(fileUrl(), { method: "PUT", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const r = await fetch(fileUrl(path), { method: "PUT", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (r.status === 409 || r.status === 422) { const e = new Error("conflict"); e.conflict = true; throw e; }
   if (r.status === 401 || r.status === 403) throw new Error("GitHub refused the write — the token needs Contents: read & write");
   if (!r.ok) throw new Error(`GitHub error ${r.status}`);
@@ -381,6 +427,7 @@ async function flush() {
 }
 
 async function refresh() {
+  if (state.view === "devlog") dlRefresh();
   if (!configured() || state.flushing || state.pending.length) return;
   try {
     const remote = await fetchRemote();
@@ -430,6 +477,7 @@ function render() {
 
   if (state.view === "board") renderBoard(main);
   else if (state.view === "epics") renderEpics(main);
+  else if (state.view === "devlog") renderDevlog(main);
   else renderArchive(main);
   if (state.openId != null) renderModal();
 }
@@ -565,6 +613,125 @@ function renderArchive(main) {
     if (confirm(`Delete #${id} "${byId(id)?.title}" for good?`)) op({ kind: "delete", ids: [id] }, `Delete #${id}`);
   });
 }
+
+// ============ devlog (BestProjectEver) ============
+// devlog.json next to tickets.json, also written by ~/.claude/skills/BPEDay/bpeday.py:
+// { version: 1, days: [{ day, date: "YYYY-MM-DD", title, summary: [..], youtube, tickets: [{ id, title }] }] }
+const devlogPath = () => cfg.path.replace(/[^/]*$/, "devlog.json");
+const dl = { data: JSON.parse(localStorage.getItem("devlog.cache") || "null"), sha: localStorage.getItem("devlog.sha"),
+  error: null, editing: null, playing: null, saving: false };
+const dlCache = () => { localStorage.setItem("devlog.cache", JSON.stringify(dl.data)); if (dl.sha) localStorage.setItem("devlog.sha", dl.sha); };
+const dlNormal = (data) => (data && Array.isArray(data.days) ? data : { version: 1, days: [] });
+
+async function dlRefresh() {
+  if (!configured() || dl.saving) return;
+  try {
+    const r = await fetchRemote(devlogPath());
+    dl.error = null;
+    if (r.sha !== dl.sha || !dl.data) {
+      dl.data = dlNormal(r.data); dl.sha = r.sha; dlCache();
+      if (state.view === "devlog") render();
+    }
+  } catch (e) { dl.error = e.message; if (state.view === "devlog" && !dl.data) render(); }
+}
+
+// Save one day's fields on top of the latest devlog.json (re-reads and retries if another device saved first).
+async function dlSave(dayNum, patch) {
+  dl.saving = true;
+  try {
+    for (let i = 0; i < 3; i++) {
+      const r = await fetchRemote(devlogPath());
+      const data = dlNormal(r.data);
+      const d = data.days.find((x) => x.day === dayNum);
+      if (!d) throw new Error(`Day ${dayNum} no longer exists`);
+      Object.assign(d, patch);
+      try {
+        dl.sha = await pushRemote(serialize(data), r.sha, `Devlog: day ${dayNum}`, devlogPath());
+        dl.data = data; dlCache(); return;
+      } catch (e) { if (!e.conflict) throw e; }
+    }
+    throw new Error("Couldn't save: the devlog kept changing. Try again.");
+  } finally { dl.saving = false; }
+}
+
+function ytId(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
+    if (u.hostname === "youtube.com" || u.hostname.endsWith(".youtube.com")) {
+      if (u.searchParams.get("v")) return u.searchParams.get("v");
+      const m = u.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]+)/);
+      return m ? m[1] : null;
+    }
+  } catch {}
+  return null;
+}
+const fmtDay = (iso) => { const d = new Date(iso + "T12:00:00");
+  return isNaN(d) ? iso : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }); };
+
+function renderDevlog(main) {
+  if (!dl.data) { main.innerHTML = `<div class="empty">${dl.error ? esc(dl.error) : "Loading the devlog…"}</div>`; dlRefresh(); return; }
+  // keep a half-typed edit when a background refresh re-renders
+  const keep = dl.editing != null && $("#dlYt") ? { yt: $("#dlYt").value, title: $("#dlTitle").value, sum: $("#dlSum").value } : null;
+  const days = [...dl.data.days].sort((a, b) => a.day - b.day);
+  const nT = days.reduce((n, d) => n + (d.tickets || []).length, 0);
+  const nV = days.filter((d) => ytId(d.youtube || "")).length;
+  main.innerHTML = `
+    <div class="dl-head"><div><div class="dl-eyebrow">BestProjectEver</div><h2>Devlog</h2></div>
+      <div class="dl-stats"><span><b>${days.length}</b>days</span><span><b>${nT}</b>tickets resolved</span><span><b>${nV}</b>videos</span></div></div>
+    ${days.length ? `<div class="dl-bars" aria-label="Tickets resolved per day">${days.map((d) => { const n = (d.tickets || []).length;
+      return `<div class="dl-barrow"><span>Day ${d.day}</span><span class="dl-cells">${n ? "<i></i>".repeat(n) : "<em>none</em>"}</span><span>${n}</span></div>`; }).join("")}</div>` : ""}
+    <div class="dl-list">${[...days].reverse().map(dayHtml).join("") ||
+      `<div class="empty">No days yet. Run <code>/BPEDay</code> in Claude to log the first one.</div>`}</div>`;
+  if (keep) { $("#dlYt").value = keep.yt; $("#dlTitle").value = keep.title; $("#dlSum").value = keep.sum; }
+}
+
+function dayHtml(d) {
+  const id = ytId(d.youtube || ""), editing = dl.editing === d.day, tk = d.tickets || [];
+  const video = !id ? `<div class="empty dl-novideo">No video yet. Add one with <code>/BPEDay &lt;link&gt;</code> or Edit.</div>`
+    : dl.playing === d.day
+      ? `<div class="dl-video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(id)}?autoplay=1&rel=0" title="Day ${d.day} video"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`
+      : `<button class="dl-video dl-thumb" data-play="${d.day}" aria-label="Play the day ${d.day} video">
+          <img src="https://i.ytimg.com/vi/${esc(id)}/hqdefault.jpg" alt="" loading="lazy"><span class="dl-play" aria-hidden="true">▶</span></button>`;
+  return `<article class="dl-day">
+    <div class="dl-tile" aria-hidden="true"><small>DAY</small><b>${d.day}</b></div>
+    <div class="dl-card">
+      <div class="dl-top"><span class="sub">${esc(fmtDay(d.date))}</span>${editing ? "" : `<button class="dl-edit" data-dledit="${d.day}">Edit</button>`}</div>
+      <h3>${esc(d.title || "Untitled day")}</h3>
+      ${(d.summary || []).length ? `<ul class="dl-sum">${d.summary.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+      ${video}
+      ${id ? `<a class="sub dl-yt" href="${esc(d.youtube)}" target="_blank" rel="noopener">Open on YouTube ↗</a>` : ""}
+      <div class="dl-tickets"><div class="dl-label">Tickets resolved (${tk.length})</div>
+        ${tk.length ? `<ul>${tk.map((t) => `<li><code>#${esc(t.id)}</code><span>${esc(t.title)}</span></li>`).join("")}</ul>` : `<div class="empty">None this day.</div>`}</div>
+      ${editing ? `<form class="dl-form" data-dlform="${d.day}">
+        <label class="f" for="dlYt">YouTube link</label><input type="text" id="dlYt" value="${esc(d.youtube || "")}" placeholder="https://youtu.be/…" autocomplete="off">
+        <label class="f" for="dlTitle">Headline</label><input type="text" id="dlTitle" value="${esc(d.title || "")}">
+        <label class="f" for="dlSum">Summary <span class="muted">one point per line</span></label><textarea id="dlSum">${esc((d.summary || []).join("\n"))}</textarea>
+        <div class="err" id="dlErr"></div>
+        <div class="dl-actions"><button type="submit" class="primary">Save</button><button type="button" data-dlcancel>Cancel</button></div></form>` : ""}
+    </div></article>`;
+}
+
+document.addEventListener("click", (e) => {
+  const p = e.target.closest("[data-play]");
+  if (p) { dl.playing = +p.dataset.play; render(); return; }
+  const ed = e.target.closest("[data-dledit]");
+  if (ed) { dl.editing = +ed.dataset.dledit; render(); $("#dlYt")?.focus(); return; }
+  if (e.target.closest("[data-dlcancel]")) { dl.editing = null; render(); }
+});
+document.addEventListener("submit", async (e) => {
+  const f = e.target.closest("[data-dlform]"); if (!f) return;
+  e.preventDefault();
+  const day = +f.dataset.dlform, yt = $("#dlYt").value.trim();
+  if (yt && !ytId(yt)) { $("#dlErr").textContent = "That isn't a YouTube video link. Use the link from YouTube's Share button."; return; }
+  $("#dlErr").textContent = "Saving…";
+  try {
+    await dlSave(day, { youtube: yt, title: $("#dlTitle").value.trim(),
+      summary: $("#dlSum").value.split("\n").map((s) => s.trim()).filter(Boolean) });
+    dl.editing = null; render();
+  } catch (x) { $("#dlErr").textContent = x.message; }
+});
 
 // ============ ticket modal ============
 function openTicket(id) { state.openId = id; renderModal(); }
