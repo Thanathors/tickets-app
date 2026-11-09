@@ -3,48 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#111113">
+<meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12161c" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tickets">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Tickets</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
+  /* Slate-and-gold inventory look, shared with the BestProjectEver devlog. */
   :root {
-    --bg: #f7f7f8; --surface: #fff; --line: #e4e4e7; --text: #18181b; --muted: #71717a;
-    --hover: #f0f0f2; --accent: #18181b; --accent-ink: #fff;
-    --task: #3b82f6; --bug: #ef4444; --epic: #8b5cf6; --ok: #16a34a; --warn: #d97706;
-    color-scheme: light dark;
+    --bg: #eef1f4; --surface: #ffffff; --cell: #dfe5ec; --line: #c6cfda; --text: #1c2430; --muted: #5b6778;
+    --accent: #b7791f; --accent-soft: #f6e7c8; --accent-ink: #1c1406;
+    --teal: #2c7a7b; --teal-soft: #d5ecec; --red: #b83232;
+    --hover: var(--cell);
+    --task: var(--teal); --bug: var(--red); --epic: var(--accent); --ok: var(--teal); --warn: var(--accent);
+    --display: "Pixelify Sans", "Courier New", monospace;
+    --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #111113; --surface: #1a1a1d; --line: #2a2a2e; --text: #ececee; --muted: #8b8b93;
-      --hover: #232327; --accent: #ececee; --accent-ink: #111113; }
-  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #12161c; --surface: #1a2029; --cell: #252d39; --line: #323c4b; --text: #e6eaf0; --muted: #97a3b4;
+    --accent: #e0a84a; --accent-soft: #3a2f1b; --teal: #5fb7b5; --teal-soft: #183333; --red: #ef6b6b;
+    color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg: #12161c; --surface: #1a2029; --cell: #252d39; --line: #323c4b; --text: #e6eaf0; --muted: #97a3b4;
+    --accent: #e0a84a; --accent-soft: #3a2f1b; --teal: #5fb7b5; --teal-soft: #183333; --red: #ef6b6b;
+    color-scheme: dark; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
-    font: 14px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-  body { padding: 0 16px calc(24px + env(safe-area-inset-bottom)); max-width: 1180px; margin: 0 auto; }
+    font: 14.5px/1.5 var(--body); -webkit-tap-highlight-color: transparent; font-variant-numeric: tabular-nums; }
+  html { overflow-x: hidden; }
+  body { padding: 0 max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    max-width: 1180px; margin: 0 auto; }
   button, input, select, textarea { font: inherit; color: inherit; }
-  button { background: none; border: 0; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
-  button:hover { background: var(--hover); }
+  button { background: none; border: 1px solid transparent; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  button:hover { background: var(--cell); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   select, input[type=text], input[type=password], textarea {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; }
-  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--muted); }
+    background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 7px 9px; min-width: 0; }
+  select { cursor: pointer; }
+  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  code { font-family: var(--mono); font-size: .9em; }
   .muted { color: var(--muted); }
   .hidden { display: none !important; }
+  .sub { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
   /* header */
   header { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; align-items: center;
-    gap: 8px; padding: calc(12px + env(safe-area-inset-top)) 0 10px; flex-wrap: wrap; }
-  header h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 650; }
-  nav { display: flex; gap: 2px; }
+    gap: 8px; padding: calc(14px + env(safe-area-inset-top)) 0 12px; flex-wrap: wrap; border-bottom: 1px dashed var(--line); margin-bottom: 14px; }
+  header h1 { font-family: var(--display); font-size: 22px; line-height: 1; margin: 0 10px 0 0; font-weight: 700;
+    display: flex; align-items: center; gap: 8px; }
+  header h1::before { content: ""; width: 14px; height: 14px; border-radius: 2px; background: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft); }
+  nav { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px; }
   nav button { color: var(--muted); }
-  nav button.on { color: var(--text); background: var(--hover); font-weight: 600; }
+  nav button.on { color: var(--text); background: var(--cell); border-color: var(--line); }
   .spacer { flex: 1; }
-  .sync { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-  .sync i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
-  .sync.busy i { background: var(--warn); } .sync.error i { background: var(--bug); }
+  .sync { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+    display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .sync span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sync i { width: 8px; height: 8px; border-radius: 2px; background: var(--ok); flex: none; }
+  .sync.busy i { background: var(--warn); } .sync.error i { background: var(--bug); } .sync.error { color: var(--red); }
+  #settingsBtn { font-size: 16px; padding: 3px 8px; border-color: var(--line); background: var(--surface); }
 
   /* type marks */
   .mark { display: inline-block; width: 9px; height: 9px; flex: none; }
@@ -53,78 +79,116 @@
   .mark.epic { background: var(--epic); transform: rotate(45deg) scale(.85); border-radius: 1px; }
 
   /* add bar */
-  .add { display: flex; gap: 6px; margin: 4px 0 14px; }
+  .add { display: flex; gap: 6px; margin: 0 0 16px; }
   .add input { flex: 1; min-width: 0; }
   .add #addEpic { max-width: 180px; }
-  .prio { font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); }
-  .prio.high { color: var(--bug); border-color: currentColor; }
-  .prio.mid { color: var(--warn); border-color: currentColor; }
+  .prio { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 3px;
+    background: var(--cell); color: var(--muted); }
+  .prio.high { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+  .prio.mid { color: var(--accent); background: var(--accent-soft); }
 
   /* board */
-  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
+  .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
   .board { row-gap: 0; }
-  .col { min-height: 44px; border-radius: 8px; padding: 2px; }
-  .col.drop { background: var(--hover); }
-  .colhead { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px;
-    margin: 0 0 8px; padding: 0 4px; display: flex; align-items: center; gap: 6px; }
-  .colhead .n, .lane .n { font-weight: 500; color: var(--muted); }
-  .lane { grid-column: 1 / -1; font-size: 13px; font-weight: 600; padding: 10px 4px 6px; margin-top: 6px;
-    border-top: 1px solid var(--line); display: flex; gap: 6px; align-items: baseline; }
+  .col { min-height: 44px; border-radius: 6px; padding: 2px; }
+  .col.drop { background: var(--accent-soft); outline: 1px dashed var(--accent); }
+  .colhead { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em;
+    margin: 0 0 8px; padding: 0 2px; display: flex; align-items: center; gap: 8px; }
+  /* inventory-style count tiles */
+  .colhead .n, .lane .n, .tabs .n { font-family: var(--body); font-weight: 700; font-size: 12px; letter-spacing: 0; color: var(--text);
+    min-width: 24px; height: 24px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--cell); border: 2px solid var(--line); border-radius: 4px; }
+  .colhead[data-s="in-progress"] .n, .tabs [data-col="in-progress"] .n { border-color: var(--accent); }
+  .colhead[data-s="resolved"] .n, .tabs [data-col="resolved"] .n { border-color: var(--teal); }
+  .colhead[data-s="in-progress"] { color: var(--accent); }
+  .colhead[data-s="resolved"] { color: var(--teal); }
+  .lane { grid-column: 1 / -1; font-size: 14px; font-weight: 700; padding: 12px 2px 8px; margin-top: 8px;
+    border-top: 1px dashed var(--line); display: flex; gap: 8px; align-items: center; }
+  .lane .n { min-width: 20px; height: 20px; font-size: 11px; border-width: 1px; color: var(--muted); }
   .lane[data-open] { cursor: pointer; } .lane[data-open]:hover { color: var(--accent); }
   .lane-empty { grid-column: 1 / -1; }
-  .colhead button { margin-left: auto; font-size: 11px; text-transform: none; letter-spacing: 0; padding: 2px 6px; color: var(--muted); }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
+  .colhead button { margin-left: auto; font-family: var(--body); font-size: 11px; text-transform: none; letter-spacing: 0; padding: 2px 8px;
+    color: var(--muted); border-color: var(--line); background: var(--surface); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 6px; padding: 9px 11px;
     margin-bottom: 6px; cursor: pointer; display: flex; gap: 9px; align-items: baseline; user-select: none; }
+  .card.in-progress { border-left-color: var(--accent); }
+  .card.resolved { border-left-color: var(--teal); }
   .card:hover { border-color: var(--muted); }
+  .card.in-progress:hover { border-color: var(--accent); }
+  .card.resolved:hover { border-color: var(--teal); }
   .card.dragging { opacity: .4; }
-  .card .t { flex: 1; min-width: 0; word-wrap: break-word; }
-  .card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .card .t { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+  .card .meta { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; align-items: center; }
   .card.resolved .t > div:first-child { color: var(--muted); }
   .empty { color: var(--muted); font-size: 13px; padding: 8px 4px; }
   .seg.tabs { display: none; }
 
   /* epics + archive lists */
-  .list .row { display: flex; align-items: center; gap: 10px; padding: 11px 6px; border-bottom: 1px solid var(--line); cursor: pointer; }
-  .list .row:hover { background: var(--hover); }
-  .list .row .t { flex: 1; min-width: 0; }
-  .bar { width: 120px; height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; flex: none; }
-  .bar > div { height: 100%; background: var(--ok); }
-  .pill { font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .list { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .list:has(> .empty:only-child) { background: none; border-style: dashed; }
+  .list .row { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px dashed var(--line); cursor: pointer; }
+  .list .row:last-child { border-bottom: 0; }
+  .list .row:hover { background: var(--cell); }
+  .list .row .t { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+  .list .row button { border-color: var(--line); background: var(--cell); }
+  .list .row button:hover { border-color: var(--muted); }
+  /* progress as a strip of inventory slots */
+  .bar { width: 120px; height: 10px; background: var(--cell); border: 1px solid var(--line); border-radius: 2px; overflow: hidden; flex: none; }
+  .bar > div { height: 100%; background: repeating-linear-gradient(90deg, var(--teal) 0 10px, transparent 10px 12px); }
+  .pill { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--cell); color: var(--muted); white-space: nowrap; }
+  .pill[data-s="in-progress"] { background: var(--accent-soft); color: var(--accent); }
+  .pill[data-s="resolved"] { background: var(--teal-soft); color: var(--teal); }
 
   /* modal */
-  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 20; display: flex;
+  .scrim { position: fixed; inset: 0; background: rgba(8, 10, 14, .55); z-index: 20; display: flex;
     align-items: flex-start; justify-content: center; padding: 6vh 12px; overflow: auto; }
-  .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 620px;
-    padding: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
-  .modal .title { width: 100%; font-size: 18px; font-weight: 600; border-color: transparent; padding: 4px 6px; margin-left: -6px; }
+  .modal { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; width: 100%; max-width: 620px;
+    padding: 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+  .modal .title { width: 100%; font-size: 19px; font-weight: 700; border-color: transparent; padding: 4px 6px; margin-left: -6px; margin-top: 6px; }
   .modal .title:hover { border-color: var(--line); }
+  .modal .id { font-family: var(--mono); font-size: 12px; }
+  .modal > div:first-child { padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+  #closeBtn { border-color: var(--line); background: var(--cell); }
   .fields { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; align-items: center; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; padding: 2px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: var(--bg); }
   .seg button { padding: 4px 10px; font-size: 13px; color: var(--muted); }
-  .seg button.on { background: var(--accent); color: var(--accent-ink); }
-  .modal textarea { width: 100%; min-height: 140px; resize: vertical; line-height: 1.5; }
-  .modal footer { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; }
-  .danger { color: var(--bug); }
+  .seg button.on { background: var(--cell); color: var(--text); border-color: var(--line); }
+  .seg button[data-s="in-progress"].on, .seg button[data-col="in-progress"].on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .seg button[data-s="resolved"].on, .seg button[data-col="resolved"].on { background: var(--teal-soft); color: var(--teal); border-color: var(--teal); }
+  .modal textarea { width: 100%; min-height: 140px; resize: vertical; line-height: 1.5; background: var(--bg); }
+  .modal footer { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; padding-top: 12px; font-size: 12px;
+    border-top: 1px dashed var(--line); }
+  .modal footer > .muted:first-child { font-family: var(--mono); font-size: 11.5px; }
+  .modal footer button:not(.primary) { border-color: var(--line); background: var(--cell); }
+  .danger { color: var(--red); }
+  .modal footer button.danger:hover, .list .row button.danger:hover { border-color: var(--red); }
   .children { margin-top: 12px; }
+  .children.list { background: none; border: 0; border-radius: 0; }
   .children .row { padding: 7px 4px; }
-  label.f { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
-  .modal input.full { width: 100%; }
-  .primary { background: var(--accent); color: var(--accent-ink); padding: 7px 14px; font-weight: 600; }
-  .primary:hover { background: var(--accent); opacity: .9; }
-  .err { color: var(--bug); font-size: 13px; margin-top: 8px; min-height: 18px; }
+  label.f { display: block; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin: 12px 0 5px; }
+  label.f .muted { text-transform: none; letter-spacing: 0; font-weight: 400; font-family: var(--body); }
+  .modal input.full { width: 100%; background: var(--bg); }
+  .modal b { font-family: var(--display); font-size: 18px; }
+  summary { cursor: pointer; }
+  .primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); padding: 7px 14px; font-weight: 700; }
+  .primary:hover { background: var(--accent); filter: brightness(1.08); }
+  .err { color: var(--red); font-size: 13px; margin-top: 8px; min-height: 18px; }
 
   @media (max-width: 720px) {
     header h1 { display: none; }
-    .board { grid-template-columns: 1fr; }
+    .board { grid-template-columns: minmax(0, 1fr); }
     .seg.tabs { display: flex; margin-bottom: 10px; }
     .add { flex-wrap: wrap; }
     .add input, .add #addBtn { order: -1; }
     .add input { flex-basis: calc(100% - 70px); }
     .add #addEpic, .add #addPrio { flex: 1; max-width: none; min-width: 0; }
-    .tabs button { flex: 1; }
+    .tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 4px; white-space: nowrap; }
+    .tabs .n { min-width: 20px; height: 20px; font-size: 11px; }
     .board .col { display: none; } .board .col.show { display: block; }
     .colhead, .lane.mhide { display: none; }
     .bar { width: 60px; }
+    .list .row { flex-wrap: wrap; }
     .scrim { padding: 0; align-items: stretch; }
     .modal { border-radius: 0; min-height: 100%; border: 0; padding-top: calc(18px + env(safe-area-inset-top)); }
     .card { padding: 12px; }
@@ -395,9 +459,9 @@ function renderBoard(main) {
       <input type="text" id="addTitle" placeholder="Add a ticket…" title="Shortcut: N" autocomplete="off" enterkeyhint="done">
       <button class="primary" id="addBtn">Add</button>
     </form>
-    <div class="tabs seg">${cols.map((c) => `<button data-col="${c.s}" class="${state.mobileCol === c.s ? "on" : ""}">${c.label} ${c.items.length}</button>`).join("")}</div>
+    <div class="tabs seg">${cols.map((c) => `<button data-col="${c.s}" class="${state.mobileCol === c.s ? "on" : ""}">${c.label} <span class="n">${c.items.length}</span></button>`).join("")}</div>
     <div class="board">${cols.map((c) => `
-      <h2 class="colhead">${c.label} <span class="n">${c.items.length}</span>
+      <h2 class="colhead" data-s="${c.s}">${c.label} <span class="n">${c.items.length}</span>
         ${c.s === "resolved" && c.items.length ? `<button data-archive-resolved title="Move all resolved tickets to the archive">Archive all</button>` : ""}</h2>`).join("")}
       ${!visible.length ? `<div class="empty lane-empty">Nothing here</div>` : showLanes ? lanes.map((l) => `
       <div class="lane ${l.cols[STATUSES.findIndex(([s]) => s === state.mobileCol)].length ? "" : "mhide"}"
@@ -466,8 +530,8 @@ function renderEpics(main) {
     <div class="list">${list.map((e) => {
       const kids = childrenOf(e.id), done = kids.filter((k) => k.status === "resolved").length;
       return `<div class="row" data-goto="${e.id}">${mark("epic")}
-        <div class="t"><div>${esc(e.title)}</div><div class="muted" style="font-size:12px">#${e.id} · ${done}/${kids.length} resolved</div></div>
-        <span class="pill">${STATUS_LABEL[e.status]}</span>
+        <div class="t"><div>${esc(e.title)}</div><div class="sub">#${e.id} · ${done}/${kids.length} resolved</div></div>
+        <span class="pill" data-s="${e.status}">${STATUS_LABEL[e.status]}</span>
         <div class="bar"><div style="width:${kids.length ? (100 * done) / kids.length : 0}%"></div></div>
         <button data-open="${e.id}" title="Edit epic">Edit</button></div>`;
     }).join("") || `<div class="empty">No epics yet. Epics group tasks and bugs.</div>`}</div>`;
@@ -488,7 +552,7 @@ function renderArchive(main) {
   main.innerHTML = `<div class="list">${list.map((t) => {
     const e = t.epic != null ? byId(t.epic) : null;
     return `<div class="row" data-open="${t.id}">${mark(t.type)}
-      <div class="t"><div>${esc(t.title)}</div><div class="muted" style="font-size:12px">#${t.id} · ${STATUS_LABEL[t.status]}${e ? " · " + esc(e.title) : ""}</div></div>
+      <div class="t"><div>${esc(t.title)}</div><div class="sub">#${t.id} · ${STATUS_LABEL[t.status]}${e ? " · " + esc(e.title) : ""}</div></div>
       <button data-restore="${t.id}">Restore</button>
       <button class="danger" data-delete="${t.id}">Delete</button></div>`;
   }).join("") || `<div class="empty">The archive is empty. Archived tickets end up here, where you can restore or delete them.</div>`}</div>`;
@@ -529,7 +593,7 @@ function renderModal() {
   const kids = t.type === "epic" ? childrenOf(t.id) : [];
   root.innerHTML = `
     <div class="scrim" id="scrim"><div class="modal" data-id="${t.id}">
-      <div style="display:flex;align-items:center;gap:8px">${mark(t.type)}<span class="muted">#${t.id}${t.archived ? " · archived" : ""}</span>
+      <div style="display:flex;align-items:center;gap:8px">${mark(t.type)}<span class="muted id">#${t.id}${t.archived ? " · archived" : ""}</span>
         <div class="spacer"></div><button id="closeBtn" title="Close (Esc)">✕</button></div>
       <input class="title" type="text" value="${esc(keep?.title ?? t.title)}" placeholder="Title">
       <div class="fields">
@@ -541,7 +605,7 @@ function renderModal() {
       </div>
       <textarea placeholder="Description, notes, links…">${esc(keep?.desc ?? t.description ?? "")}</textarea>
       ${t.type === "epic" ? `<div class="children list"><label class="f">${kids.length} ticket${kids.length === 1 ? "" : "s"} in this epic</label>
-        ${kids.map((k) => `<div class="row" data-open="${k.id}">${mark(k.type)}<div class="t">${esc(k.title)}</div><span class="pill">${STATUS_LABEL[k.status]}</span></div>`).join("")}</div>` : ""}
+        ${kids.map((k) => `<div class="row" data-open="${k.id}">${mark(k.type)}<div class="t">${esc(k.title)}</div><span class="pill" data-s="${k.status}">${STATUS_LABEL[k.status]}</span></div>`).join("")}</div>` : ""}
       <footer><span class="muted">Created ${t.created.slice(0, 10)} · Updated ${t.updated.slice(0, 10)}</span><div class="spacer"></div>
         ${t.archived
           ? `<button id="restoreBtn">Restore</button><button class="danger" id="deleteBtn">Delete</button>`
