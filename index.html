@@ -64,6 +64,9 @@
   nav { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px; }
   nav button { color: var(--muted); }
   nav button.on { color: var(--text); background: var(--cell); border-color: var(--line); }
+  /* top-level switch: Tickets | Devlog */
+  nav.section button { font-size: 13.5px; padding: 5px 14px; }
+  nav.section button.on { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
   .spacer { flex: 1; }
   .sync { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
     display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -243,11 +246,14 @@
 <body>
 <header>
   <h1>Tickets</h1>
-  <nav id="nav">
+  <nav id="section" class="section" aria-label="Section">
+    <button data-section="tickets" class="on">Tickets</button>
+    <button data-section="devlog">Devlog</button>
+  </nav>
+  <nav id="nav" aria-label="Ticket views">
     <button data-view="board" class="on">Board</button>
     <button data-view="epics">Epics</button>
     <button data-view="archive">Archive</button>
-    <button data-view="devlog">Devlog</button>
   </nav>
   <select id="epicFilter" title="Show tickets from one epic"></select>
   <div class="spacer"></div>
@@ -372,7 +378,8 @@ const state = {
   data: JSON.parse(localStorage.getItem("tickets.cache") || "null"),
   sha: localStorage.getItem("tickets.sha"),
   pending: [], flushing: false, error: null,
-  view: "board", epic: localStorage.getItem("tickets.epic") || "all", mobileCol: "todo",
+  view: localStorage.getItem("tickets.view") || "board", ticketView: localStorage.getItem("tickets.ticketView") || "board",
+  epic: localStorage.getItem("tickets.epic") || "all", mobileCol: "todo",
   openId: null,
 };
 
@@ -457,7 +464,10 @@ const update = (id, patch, what) => op({ kind: "update", id, patch }, `#${id} ${
 // ============ rendering ============
 function render() {
   setSync();
+  const section = state.view === "devlog" ? "devlog" : "tickets";
+  document.querySelectorAll("#section button").forEach((b) => b.classList.toggle("on", b.dataset.section === section));
   document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.view === state.view));
+  $("#nav").classList.toggle("hidden", section !== "tickets");
   const main = $("#main");
   if (!configured()) {
     main.innerHTML = `<div class="empty" style="padding:40px 0">Connect your GitHub repo to get started.
@@ -591,7 +601,7 @@ function renderEpics(main) {
   main.querySelectorAll("[data-goto]").forEach((r) => r.addEventListener("click", (ev) => {
     if (ev.target.closest("[data-open]")) return;
     state.epic = r.dataset.goto; localStorage.setItem("tickets.epic", state.epic);
-    state.view = "board"; render();
+    setView("board");
   }));
 }
 
@@ -846,9 +856,19 @@ function openSettings() {
 }
 
 // ============ wiring ============
+function setView(view) {
+  state.view = view;
+  if (view !== "devlog") { state.ticketView = view; localStorage.setItem("tickets.ticketView", view); }
+  localStorage.setItem("tickets.view", view);
+  render();
+}
 $("#nav").onclick = (e) => {
   const b = e.target.closest("[data-view]"); if (!b) return;
-  state.view = b.dataset.view; render();
+  setView(b.dataset.view);
+};
+$("#section").onclick = (e) => {
+  const b = e.target.closest("[data-section]"); if (!b) return;
+  setView(b.dataset.section === "devlog" ? "devlog" : state.ticketView);
 };
 $("#epicFilter").onchange = (e) => { state.epic = e.target.value; localStorage.setItem("tickets.epic", state.epic); render(); };
 $("#settingsBtn").onclick = openSettings;
