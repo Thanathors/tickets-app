@@ -653,7 +653,7 @@ function renderArchive(main) {
 }
 
 // ============ devlog (BestProjectEver) ============
-// devlog.json next to tickets.json, also written by ~/.claude/skills/BPEDay/bpeday.py:
+// devlog.json next to tickets.json, also written by ~/.claude/skills/Day/day.py:
 // { version: 1, days: [{ day, date: "YYYY-MM-DD", title, summary: [..], youtube, tickets: [{ id, title }] }],
 //   budget: [{ id, date: "YYYY-MM-DD", item, amount, currency: "CAD", note }] }   (budget = what the project has cost so far)
 const devlogPath = () => cfg.path.replace(/[^/]*$/, "devlog.json");
@@ -734,7 +734,7 @@ function renderDevlog(main) {
     ${dl.page === "budget" ? budgetHtml(spent) : `${days.length ? `<div class="dl-bars" aria-label="Tickets resolved per day">${days.map((d) => { const n = (d.tickets || []).length;
       return `<div class="dl-barrow"><span>Day ${d.day}</span><span class="dl-cells">${n ? "<i></i>".repeat(n) : "<em>none</em>"}</span><span>${n}</span></div>`; }).join("")}</div>` : ""}
     <div class="dl-list">${[...days].reverse().map(dayHtml).join("") ||
-      `<div class="empty">No days yet. Run <code>/BPEDay</code> in Claude to log the first one.</div>`}</div>`}`;
+      `<div class="empty">No days yet. Run <code>/Day</code> in Claude to log the first one.</div>`}</div>`}`;
   if (keep) { $("#dlYt").value = keep.yt; $("#dlTitle").value = keep.title; $("#dlSum").value = keep.sum; }
   if (bKeep) B_FIELDS.forEach((k, i) => $("#" + k).value = bKeep[i]);
 }
@@ -764,7 +764,7 @@ function budgetHtml(spent) {
 
 function dayHtml(d) {
   const id = ytId(d.youtube || ""), editing = dl.editing === d.day, tk = d.tickets || [];
-  const video = !id ? `<div class="empty dl-novideo">No video yet. Add one with <code>/BPEDay &lt;link&gt;</code> or Edit.</div>`
+  const video = !id ? `<div class="empty dl-novideo">No video yet. Add one with <code>/Day &lt;link&gt;</code> or Edit.</div>`
     : dl.playing === d.day
       ? `<div class="dl-video"><iframe src="https://www.youtube-nocookie.com/embed/${esc(id)}?autoplay=1&rel=0" title="Day ${d.day} video"
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`
