@@ -272,6 +272,10 @@
     <button data-section="tickets" class="on">Tickets</button>
     <button data-section="devlog">Devlog</button>
   </nav>
+  <nav id="dlNav" class="hidden" aria-label="Devlog pages">
+    <button data-dlpage="days" class="on">Days</button>
+    <button data-dlpage="budget">Budget</button>
+  </nav>
   <nav id="nav" aria-label="Ticket views">
     <button data-view="board" class="on">Board</button>
     <button data-view="epics">Epics</button>
@@ -490,6 +494,8 @@ function render() {
   document.querySelectorAll("#section button").forEach((b) => b.classList.toggle("on", b.dataset.section === section));
   document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.view === state.view));
   $("#nav").classList.toggle("hidden", section !== "tickets");
+  $("#dlNav").classList.toggle("hidden", section !== "devlog");
+  document.querySelectorAll("#dlNav button").forEach((b) => b.classList.toggle("on", b.dataset.dlpage === dl.page));
   const main = $("#main");
   if (!configured()) {
     main.innerHTML = `<div class="empty" style="padding:40px 0">Connect your GitHub repo to get started.
@@ -656,7 +662,8 @@ const dlNormal = (data) => { const d = data && Array.isArray(data.days) ? data :
   if (!Array.isArray(d.budget)) d.budget = []; return d; };
 const dlCached = JSON.parse(localStorage.getItem("devlog.cache") || "null");
 const dl = { data: dlCached && dlNormal(dlCached), sha: localStorage.getItem("devlog.sha"),
-  error: null, editing: null, playing: null, saving: false, bEditing: null };
+  error: null, editing: null, playing: null, saving: false, bEditing: null,
+  page: localStorage.getItem("devlog.page") === "budget" ? "budget" : "days" };
 const dlCache = () => { localStorage.setItem("devlog.cache", JSON.stringify(dl.data)); if (dl.sha) localStorage.setItem("devlog.sha", dl.sha); };
 
 async function dlRefresh() {
@@ -722,13 +729,12 @@ function renderDevlog(main) {
   const nT = days.reduce((n, d) => n + (d.tickets || []).length, 0);
   const nV = days.filter((d) => ytId(d.youtube || "")).length;
   main.innerHTML = `
-    <div class="dl-head"><div><div class="dl-eyebrow">BestProjectEver</div><h2>Devlog</h2></div>
+    <div class="dl-head"><div><div class="dl-eyebrow">BestProjectEver</div><h2>${dl.page === "budget" ? "Budget" : "Devlog"}</h2></div>
       <div class="dl-stats"><span><b>${days.length}</b>days</span><span><b>${nT}</b>tickets resolved</span><span><b>${nV}</b>videos</span><span><b>${money(spent)}</b>spent</span></div></div>
-    ${budgetHtml(spent)}
-    ${days.length ? `<div class="dl-bars" aria-label="Tickets resolved per day">${days.map((d) => { const n = (d.tickets || []).length;
+    ${dl.page === "budget" ? budgetHtml(spent) : `${days.length ? `<div class="dl-bars" aria-label="Tickets resolved per day">${days.map((d) => { const n = (d.tickets || []).length;
       return `<div class="dl-barrow"><span>Day ${d.day}</span><span class="dl-cells">${n ? "<i></i>".repeat(n) : "<em>none</em>"}</span><span>${n}</span></div>`; }).join("")}</div>` : ""}
     <div class="dl-list">${[...days].reverse().map(dayHtml).join("") ||
-      `<div class="empty">No days yet. Run <code>/BPEDay</code> in Claude to log the first one.</div>`}</div>`;
+      `<div class="empty">No days yet. Run <code>/BPEDay</code> in Claude to log the first one.</div>`}</div>`}`;
   if (keep) { $("#dlYt").value = keep.yt; $("#dlTitle").value = keep.title; $("#dlSum").value = keep.sum; }
   if (bKeep) B_FIELDS.forEach((k, i) => $("#" + k).value = bKeep[i]);
 }
@@ -738,7 +744,7 @@ function budgetHtml(spent) {
   const items = [...dl.data.budget].sort((a, b) => (a.date || "").localeCompare(b.date || "") || a.id - b.id);
   const e = dl.bEditing === "new" ? { date: todayIso(), item: "", amount: "", note: "" } : items.find((b) => b.id === dl.bEditing);
   return `<section class="dl-budget" aria-label="Budget">
-    <div class="dl-btop"><h3>Budget</h3>${dl.bEditing == null ? `<button data-bedit="new">+ Add expense</button>` : ""}</div>
+    <div class="dl-btop"><h3>Expenses</h3>${dl.bEditing == null ? `<button data-bedit="new">+ Add expense</button>` : ""}</div>
     ${items.length ? `<ul class="dl-items">${items.map((b) => `<li class="dl-item">
         <span>${esc(b.item)}</span><span class="amt">${money(+b.amount || 0, b.currency || "CAD")}</span>
         <button data-bedit="${b.id}" aria-label="Edit ${esc(b.item)}">Edit</button>
@@ -958,6 +964,10 @@ $("#nav").onclick = (e) => {
 $("#section").onclick = (e) => {
   const b = e.target.closest("[data-section]"); if (!b) return;
   setView(b.dataset.section === "devlog" ? "devlog" : state.ticketView);
+};
+$("#dlNav").onclick = (e) => {
+  const b = e.target.closest("[data-dlpage]"); if (!b) return;
+  dl.page = b.dataset.dlpage; localStorage.setItem("devlog.page", dl.page); render();
 };
 $("#epicFilter").onchange = (e) => { state.epic = e.target.value; localStorage.setItem("tickets.epic", state.epic); render(); };
 $("#settingsBtn").onclick = openSettings;
