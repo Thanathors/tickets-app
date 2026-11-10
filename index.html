@@ -651,11 +651,13 @@ function renderArchive(main) {
 // { version: 1, days: [{ day, date: "YYYY-MM-DD", title, summary: [..], youtube, tickets: [{ id, title }] }],
 //   budget: [{ id, date: "YYYY-MM-DD", item, amount, currency: "CAD", note }] }   (budget = what the project has cost so far)
 const devlogPath = () => cfg.path.replace(/[^/]*$/, "devlog.json");
-const dl = { data: JSON.parse(localStorage.getItem("devlog.cache") || "null"), sha: localStorage.getItem("devlog.sha"),
-  error: null, editing: null, playing: null, saving: false, bEditing: null };
-const dlCache = () => { localStorage.setItem("devlog.cache", JSON.stringify(dl.data)); if (dl.sha) localStorage.setItem("devlog.sha", dl.sha); };
+// older caches (and devlog.json files) have no budget list yet
 const dlNormal = (data) => { const d = data && Array.isArray(data.days) ? data : { version: 1, days: [] };
   if (!Array.isArray(d.budget)) d.budget = []; return d; };
+const dlCached = JSON.parse(localStorage.getItem("devlog.cache") || "null");
+const dl = { data: dlCached && dlNormal(dlCached), sha: localStorage.getItem("devlog.sha"),
+  error: null, editing: null, playing: null, saving: false, bEditing: null };
+const dlCache = () => { localStorage.setItem("devlog.cache", JSON.stringify(dl.data)); if (dl.sha) localStorage.setItem("devlog.sha", dl.sha); };
 
 async function dlRefresh() {
   if (!configured() || dl.saving) return;
