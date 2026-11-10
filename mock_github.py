@@ -68,4 +68,6 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         FILES["tickets.json"] = Path(sys.argv[1]).read_bytes()
+        dl = Path(sys.argv[1]).with_name("devlog.json")
+        if dl.is_file(): FILES["devlog.json"] = dl.read_bytes()
     ThreadingHTTPServer(("127.0.0.1", 8766), H).serve_forever()
